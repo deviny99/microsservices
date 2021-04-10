@@ -1,0 +1,17 @@
+server:
+  port: ${PORT}
+  servlet:
+    context-path: /registry
+    
+spring:
+  application:
+    name: registry
+    
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: http://${DISCOVERY_HOST}:${server.port}/eureka/    
+
+        

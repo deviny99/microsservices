@@ -1,0 +1,126 @@
+version: '3.4'
+services:
+  rabbitmq:
+    image: rabbitmq:3.8.3-management
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - $PWD/storage/rabbitmq1:/var/lib/rabbitmq
+    environment:
+      - RABBITMQ_ERLANG_COOKIE=secret_pass
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    networks:
+      - microservices-net
+  
+  bd_crud:
+    image: mysql
+    restart: always
+    ports:
+      - 3311:3306
+    volumes:
+      - db_crud:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: crud
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+      MYSQL_ROOT_PASSWORD: root
+    networks:
+      - microservices-net
+
+  bd_pagamento:
+    image: mysql
+    restart: always
+    ports:
+      - 3308:3306
+    volumes:
+      - db_pagamento:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: pagamento
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+      MYSQL_ROOT_PASSWORD: root
+    networks:
+      - microservices-net
+
+  bd_auth:
+    image: mysql
+    restart: always
+    ports:
+      - 3307:3306
+    volumes:
+      - db_auth:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: auth
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+      MYSQL_ROOT_PASSWORD: root
+    networks:
+      - microservices-net
+      
+  gateway:
+    build:
+      context: ../gateway
+      dockerfile: ./
+    image: gateway
+    container_name: gateway
+    environment:
+      EUREKA_HOST: discovery
+    ports:
+     - 8080:8080
+    networks:
+     - microservices-net
+    depends_on:
+     - discovery
+
+  discovery:
+    build:
+      context: ../discovery
+      dockerfile: ./
+    image: discovery
+    container_name: discovery
+    ports:
+     - 8083:8080
+    networks:
+     - microservices-net
+
+
+  crud:
+    build:
+      context: ../crud
+      dockerfile: ./
+    image: crud
+    container_name: crud
+    ports:
+     - 8082:8080
+    environment:
+      DATABASE_HOST: bd_crud
+      DATABASE_PORT: 3311
+      DATABASE_USER: root
+      DATABASE_PASSWORD: root
+      DATABASE_NAME: crud
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: admin
+      RABBITMQ_PASSWORD: admin
+      EUREKA_HOST: discovery
+    depends_on:
+     - bd_crud
+     - discovery
+    networks:
+     - microservices-net
+     
+
+
+
+
+networks:
+    microservices-net:
+      driver: bridge     
+
+volumes:
+  rabbitmq:
+  db_crud:
+  db_pagamento:
+  db_auth:
